@@ -9,11 +9,11 @@ A high-contrast, mobile-first flight operations board engineered for airport sec
 
 - **Live FlightRadar24 Schedule Integration**:
   - Direct schedule polling from FlightRadar24 API for Cochin International Airport (`code=cok`).
-  - **Fallback Proxy Chain**: Direct fetch $\rightarrow$ `corsproxy.io` $\rightarrow$ `allorigins.win` $\rightarrow$ `codetabs.com`.
-  - **Proxy Mode Selector**: Auto (automatically enables proxies on iOS Safari), Forced On, or Off.
-  - **6 Overlapping 6-Hour Windows**: Pulls $-6\text{h}$ to $+24\text{h}$ window around current time, merges and de-duplicates flights, filtered to active/recent landings and within $-1\text{h}$ to $+20\text{h}$.
-  - **30-Second Polling**: Auto-refreshes with in-flight deduplication (no redundant fetches within $25\text{s}$), plus immediate reload on tab focus or reconnecting online.
-  - **Manual "⏮ -6h Earlier" Button**: Shifts the time window backwards in 6-hour increments.
+  - **Fallback Proxy Chain**: Custom proxy (if set) $\rightarrow$ Direct fetch $\rightarrow$ `codetabs.com` $\rightarrow$ `corsproxy.io` (plus native zero-CORS Android bridge on device).
+  - **Proxy Mode Selector**: Auto (smart native/direct resolution with reliable proxy fallbacks), Custom Proxy URL, CodeTabs, CorsProxy, Native Android Bridge, or Off.
+  - **Operational Time Windows**: Polls the primary operational window covering active and upcoming flights ($-1\text{h}$ to $+20\text{h}$ around current time, plus recent landings within 2 hours).
+  - **Shift Earlier**: Manual "⏮ Earlier (-6h)" button shifts the window backwards in 6-hour increments to view preceding operational periods.
+  - **30-Second Polling**: Auto-refreshes with deduplication (suppresses redundant non-forced fetches within $25\text{s}$), plus immediate reload on tab focus or reconnecting online.
 
 - **Strict Airline Allow-List**:
   - Filtered exclusively to the 8 designated operators:
@@ -115,7 +115,7 @@ gradle :app:testDebugUnitTest
 │   ├── mock-data.js        # Test fixtures for COK operations
 │   ├── sw.js               # Service worker caching app shell (never caching API)
 │   ├── manifest.json       # PWA manifest with standalone display
-│   └── icons/              # 192x192 & 512x512 PWA icons and SVG
+│   └── icons/              # Scalable vector icon (icon.svg) for PWA, touch, & manifest
 ├── capacitor.config.json   # Capacitor configuration (appId: com.aistudio.aixsecops.cokin)
 ├── package.json            # NPM scripts for dev, build, and Capacitor sync
 ├── app/                    # Native Android project

@@ -7,8 +7,6 @@ const APP_SHELL_ASSETS = [
   './app.js',
   './mock-data.js',
   './manifest.json',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
   './icons/icon.svg'
 ];
 

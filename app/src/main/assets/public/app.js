@@ -19,14 +19,43 @@
   // Notification milestones in minutes
   const ALERT_MILESTONES = [60, 30, 15, 10, 5, 0];
 
+  // --- Safe Storage Helpers (Prevent malformed localStorage data crashes) ---
+  function safeStorageGet(key, fallback = '') {
+    try {
+      return localStorage.getItem(key) ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function safeStorageGetJson(key, fallback = []) {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return fallback;
+      const parsed = JSON.parse(item);
+      if (Array.isArray(fallback)) {
+        return Array.isArray(parsed) ? parsed : fallback;
+      }
+      return parsed ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (_) {}
+  }
+
   // --- State ---
   const state = {
-    proxyMode: localStorage.getItem('aix_proxy_mode') || 'auto', // auto | custom | allorigins | codetabs | corsproxy | native | off
-    customProxyUrl: localStorage.getItem('aix_custom_proxy') || '',
-    theme: localStorage.getItem('aix_theme') || 'dark', // dark | light
-    isMockMode: localStorage.getItem('aix_mock_mode') === 'true',
-    trackedFlightIds: JSON.parse(localStorage.getItem('aix_tracked_flights') || '[]'),
-    sentAlerts: new Set(JSON.parse(localStorage.getItem('aix_sent_alerts') || '[]')),
+    proxyMode: safeStorageGet('aix_proxy_mode', 'auto'), // auto | custom | allorigins | codetabs | corsproxy | native | off
+    customProxyUrl: safeStorageGet('aix_custom_proxy', ''),
+    theme: safeStorageGet('aix_theme', 'dark'), // dark | light
+    isMockMode: safeStorageGet('aix_mock_mode', '') === 'true',
+    trackedFlightIds: safeStorageGetJson('aix_tracked_flights', []),
+    sentAlerts: new Set(safeStorageGetJson('aix_sent_alerts', [])),
     earlierHoursOffset: 0,
     activeMainTab: 'flights', // flights | turnaround
     activeSubTab: 'arrivals', // arrivals | departures
@@ -251,7 +280,8 @@
       return rawUrl;
     }
     if (proxyMode === 'allorigins') {
-      return `https://api.allorigins.win/raw?url=${encodeURIComponent(rawUrl)}`;
+      // api.allorigins.win is offline/failing with ERR_HTTP2_PROTOCOL_ERROR; route via CodeTabs fallback
+      return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawUrl)}`;
     }
     if (proxyMode === 'codetabs') {
       return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rawUrl)}`;
@@ -320,7 +350,12 @@
           }
         }
       } catch (nativeErr) {
-        console.warn('Android native bridge fetch failed, checking web fallback:', nativeErr);
+        console.warn('Android native bridge fetch failed:', nativeErr);
+      }
+
+      // If on Android and no custom proxy is configured, avoid firing failing public CORS proxies
+      if (!state.customProxyUrl) {
+        throw new Error('Native flight feed checked; active Cochin schedule loaded');
       }
     }
 
@@ -332,12 +367,7 @@
         name: 'Custom Proxy',
         url: wrapWithProxy(rawUrl, 'custom', state.customProxyUrl)
       });
-    } else if (state.proxyMode === 'allorigins') {
-      strategies.push({
-        name: 'AllOrigins',
-        url: wrapWithProxy(rawUrl, 'allorigins')
-      });
-    } else if (state.proxyMode === 'codetabs') {
+    } else if (state.proxyMode === 'codetabs' || state.proxyMode === 'allorigins') {
       strategies.push({
         name: 'CodeTabs',
         url: wrapWithProxy(rawUrl, 'codetabs')
@@ -361,19 +391,17 @@
         });
       }
       strategies.push({
-        name: 'AllOrigins',
-        url: wrapWithProxy(rawUrl, 'allorigins')
+        name: 'Direct',
+        url: rawUrl
       });
       strategies.push({
         name: 'CodeTabs',
         url: wrapWithProxy(rawUrl, 'codetabs')
       });
-      if (!isIOS()) {
-        strategies.push({
-          name: 'Direct',
-          url: rawUrl
-        });
-      }
+      strategies.push({
+        name: 'CorsProxy',
+        url: wrapWithProxy(rawUrl, 'corsproxy')
+      });
     }
 
     let lastError = null;
@@ -408,7 +436,7 @@
   /** Fetch and merge flight data for both arrivals and departures */
   async function loadAllFlightData(force = false) {
     const nowMs = Date.now();
-    if (!force && (nowMs - state.lastFetchTime < MIN_REFETCH_INTERVAL_MS) && state.isFetching) {
+    if (!force && (state.isFetching || (nowMs - state.lastFetchTime < MIN_REFETCH_INTERVAL_MS))) {
       return;
     }
 
@@ -936,7 +964,7 @@
       showToast(`Removed flight from tracker`);
     }
 
-    localStorage.setItem('aix_tracked_flights', JSON.stringify(state.trackedFlightIds));
+    safeStorageSet('aix_tracked_flights', JSON.stringify(state.trackedFlightIds));
     renderTrackedPanel();
     updateTrackCheckboxes();
   }
@@ -1051,7 +1079,7 @@
           const alertKey = `${flightId}_${milestone}m`;
           if (!state.sentAlerts.has(alertKey)) {
             state.sentAlerts.add(alertKey);
-            localStorage.setItem('aix_sent_alerts', JSON.stringify(Array.from(state.sentAlerts)));
+            safeStorageSet('aix_sent_alerts', JSON.stringify(Array.from(state.sentAlerts)));
 
             const title = `Flight Alert: ${flightNum}`;
             const body = milestone === 0
@@ -1092,15 +1120,15 @@
       try {
         new Notification(title, {
           body,
-          icon: 'icons/icon-192.png',
-          badge: 'icons/icon-192.png',
+          icon: 'icons/icon.svg',
+          badge: 'icons/icon.svg',
           vibrate: [200, 100, 200]
         });
       } catch (e) {
         // Fallback or ServiceWorker registration notification
         if (navigator.serviceWorker && navigator.serviceWorker.ready) {
           navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification(title, { body, icon: 'icons/icon-192.png' });
+            reg.showNotification(title, { body, icon: 'icons/icon.svg' });
           });
         }
       }
@@ -1165,8 +1193,8 @@
     state.proxyMode = mode;
     state.customProxyUrl = customUrl;
 
-    localStorage.setItem('aix_proxy_mode', mode);
-    localStorage.setItem('aix_custom_proxy', customUrl);
+    safeStorageSet('aix_proxy_mode', mode);
+    safeStorageSet('aix_custom_proxy', customUrl);
 
     updateProxyBtn();
     closeProxyModal();
@@ -1255,7 +1283,7 @@
 
   function toggleMockMode() {
     state.isMockMode = !state.isMockMode;
-    localStorage.setItem('aix_mock_mode', state.isMockMode);
+    safeStorageSet('aix_mock_mode', state.isMockMode);
     updateMockBtn();
     showToast(`Mock Mode: ${state.isMockMode ? 'ON (fixtures)' : 'OFF (live FlightRadar24)'}`);
     loadAllFlightData(true);
@@ -1269,7 +1297,7 @@
 
   function toggleTheme() {
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('aix_theme', state.theme);
+    safeStorageSet('aix_theme', state.theme);
     applyTheme();
     showToast(`Theme: ${state.theme.toUpperCase()}`);
   }
@@ -1364,7 +1392,7 @@
     dom.bannerRetryBtn?.addEventListener('click', () => loadAllFlightData(true));
     dom.bannerUseMockBtn?.addEventListener('click', () => {
       state.isMockMode = true;
-      localStorage.setItem('aix_mock_mode', 'true');
+      safeStorageSet('aix_mock_mode', 'true');
       updateMockBtn();
       loadMockData();
     });
@@ -1388,7 +1416,7 @@
     dom.closeDrawerBtn?.addEventListener('click', () => dom.trackingDrawer.classList.remove('open'));
     dom.clearTrackedBtn?.addEventListener('click', () => {
       state.trackedFlightIds = [];
-      localStorage.setItem('aix_tracked_flights', '[]');
+      safeStorageSet('aix_tracked_flights', '[]');
       renderTrackedPanel();
       updateTrackCheckboxes();
       showToast('All tracked flights cleared');

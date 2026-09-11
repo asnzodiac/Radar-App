@@ -42,9 +42,17 @@ const server = http.createServer((req, res) => {
     reqPath = '/index.html';
   }
 
-  // Safe path resolution
-  const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
-  let filePath = path.join(PUBLIC_DIR, safePath);
+  // Strict path traversal block: ensure resolved path is inside PUBLIC_DIR
+  const resolvedPublicDir = path.resolve(PUBLIC_DIR);
+  const resolvedFilePath = path.resolve(PUBLIC_DIR, '.' + reqPath);
+
+  if (!resolvedFilePath.startsWith(resolvedPublicDir + path.sep) && resolvedFilePath !== resolvedPublicDir) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('403 Forbidden: Path traversal is blocked');
+    return;
+  }
+
+  let filePath = resolvedFilePath;
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
