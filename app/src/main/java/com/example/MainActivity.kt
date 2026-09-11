@@ -159,7 +159,11 @@ class MainActivity : ComponentActivity() {
         request: WebResourceRequest?,
         error: android.webkit.WebResourceError?
       ) {
-        android.util.Log.e("WebViewError", "Failed loading ${request?.url}: ${error?.description}")
+        if (request?.isForMainFrame == true) {
+          android.util.Log.e("WebViewError", "Failed loading main frame ${request.url}: ${error?.description}")
+        } else {
+          android.util.Log.w("WebViewSubresource", "Subresource request notice ${request?.url}: ${error?.description}")
+        }
       }
     }
 
