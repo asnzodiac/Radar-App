@@ -30,29 +30,36 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Parse path
+  // Parse and validate the requested path before resolving it under PUBLIC_DIR.
   let reqPath = '/index.html';
   try {
-    reqPath = decodeURIComponent(req.url.split('?')[0]);
+    reqPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   } catch (e) {
-    reqPath = req.url.split('?')[0];
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('400 Bad Request');
+    return;
   }
 
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
   }
 
-  // Safe path resolution
-  const safePath = path.normalize(reqPath).replace(/^(\.\.[\/\\])+/, '');
-  let filePath = path.join(PUBLIC_DIR, safePath);
+  const filePath = path.resolve(PUBLIC_DIR, `.${reqPath}`);
+  const relativePath = path.relative(PUBLIC_DIR, filePath);
+  if (relativePath.startsWith('..' + path.sep) || relativePath === '..' || path.isAbsolute(relativePath)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('404 Not Found');
+    return;
+  }
 
   fs.stat(filePath, (err, stats) => {
+    let resolvedFilePath = filePath;
     if (err || !stats.isFile()) {
       // Fallback to index.html for SPA routing if requested
-      filePath = path.join(PUBLIC_DIR, 'index.html');
+      resolvedFilePath = path.join(PUBLIC_DIR, 'index.html');
     }
 
-    fs.readFile(filePath, (readErr, data) => {
+    fs.readFile(resolvedFilePath, (readErr, data) => {
       if (res.writableEnded) return;
 
       if (readErr) {
@@ -61,7 +68,7 @@ const server = http.createServer((req, res) => {
         return;
       }
 
-      const ext = path.extname(filePath).toLowerCase();
+      const ext = path.extname(resolvedFilePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
       res.writeHead(200, {

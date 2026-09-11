@@ -11,7 +11,7 @@ A high-contrast, mobile-first flight operations board engineered for airport sec
   - Direct schedule polling from FlightRadar24 API for Cochin International Airport (`code=cok`).
   - **Fallback Proxy Chain**: Direct fetch $\rightarrow$ `corsproxy.io` $\rightarrow$ `allorigins.win` $\rightarrow$ `codetabs.com`.
   - **Proxy Mode Selector**: Auto (automatically enables proxies on iOS Safari), Forced On, or Off.
-  - **6 Overlapping 6-Hour Windows**: Pulls $-6\text{h}$ to $+24\text{h}$ window around current time, merges and de-duplicates flights, filtered to active/recent landings and within $-1\text{h}$ to $+20\text{h}$.
+  - **Current and Earlier 6-Hour Windows**: Pulls the current schedule window and optionally shifts it backwards in 6-hour increments, merges and de-duplicates flights, filtered to active/recent landings and within $-1\text{h}$ to $+20\text{h}$.
   - **30-Second Polling**: Auto-refreshes with in-flight deduplication (no redundant fetches within $25\text{s}$), plus immediate reload on tab focus or reconnecting online.
   - **Manual "⏮ -6h Earlier" Button**: Shifts the time window backwards in 6-hour increments.
 
@@ -115,7 +115,7 @@ gradle :app:testDebugUnitTest
 │   ├── mock-data.js        # Test fixtures for COK operations
 │   ├── sw.js               # Service worker caching app shell (never caching API)
 │   ├── manifest.json       # PWA manifest with standalone display
-│   └── icons/              # 192x192 & 512x512 PWA icons and SVG
+│   └── icons/              # SVG PWA icon
 ├── capacitor.config.json   # Capacitor configuration (appId: com.aistudio.aixsecops.cokin)
 ├── package.json            # NPM scripts for dev, build, and Capacitor sync
 ├── app/                    # Native Android project

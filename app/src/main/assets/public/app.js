@@ -20,13 +20,23 @@
   const ALERT_MILESTONES = [60, 30, 15, 10, 5, 0];
 
   // --- State ---
+  function readStoredArray(key) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || '[]');
+      return Array.isArray(value) ? value : [];
+    } catch (err) {
+      console.warn(`Ignoring invalid stored value for ${key}:`, err);
+      return [];
+    }
+  }
+
   const state = {
     proxyMode: localStorage.getItem('aix_proxy_mode') || 'auto', // auto | custom | allorigins | codetabs | corsproxy | native | off
     customProxyUrl: localStorage.getItem('aix_custom_proxy') || '',
     theme: localStorage.getItem('aix_theme') || 'dark', // dark | light
     isMockMode: localStorage.getItem('aix_mock_mode') === 'true',
-    trackedFlightIds: JSON.parse(localStorage.getItem('aix_tracked_flights') || '[]'),
-    sentAlerts: new Set(JSON.parse(localStorage.getItem('aix_sent_alerts') || '[]')),
+    trackedFlightIds: readStoredArray('aix_tracked_flights'),
+    sentAlerts: new Set(readStoredArray('aix_sent_alerts')),
     earlierHoursOffset: 0,
     activeMainTab: 'flights', // flights | turnaround
     activeSubTab: 'arrivals', // arrivals | departures
@@ -368,6 +378,10 @@
         name: 'CodeTabs',
         url: wrapWithProxy(rawUrl, 'codetabs')
       });
+      strategies.push({
+        name: 'CorsProxy.io',
+        url: wrapWithProxy(rawUrl, 'corsproxy')
+      });
       if (!isIOS()) {
         strategies.push({
           name: 'Direct',
@@ -408,7 +422,7 @@
   /** Fetch and merge flight data for both arrivals and departures */
   async function loadAllFlightData(force = false) {
     const nowMs = Date.now();
-    if (!force && (nowMs - state.lastFetchTime < MIN_REFETCH_INTERVAL_MS) && state.isFetching) {
+    if (!force && nowMs - state.lastFetchTime < MIN_REFETCH_INTERVAL_MS) {
       return;
     }
 
@@ -1092,15 +1106,15 @@
       try {
         new Notification(title, {
           body,
-          icon: 'icons/icon-192.png',
-          badge: 'icons/icon-192.png',
+          icon: 'icons/icon.svg',
+          badge: 'icons/icon.svg',
           vibrate: [200, 100, 200]
         });
       } catch (e) {
         // Fallback or ServiceWorker registration notification
         if (navigator.serviceWorker && navigator.serviceWorker.ready) {
           navigator.serviceWorker.ready.then(reg => {
-            reg.showNotification(title, { body, icon: 'icons/icon-192.png' });
+            reg.showNotification(title, { body, icon: 'icons/icon.svg' });
           });
         }
       }
