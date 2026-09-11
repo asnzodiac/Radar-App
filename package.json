@@ -1,0 +1,32 @@
+{
+  "name": "aix-sec-ops-cok",
+  "version": "1.0.0",
+  "description": "AIX SEC OPS – COK Live Flight Arrivals, Departures and Turnaround Board for Cochin International Airport",
+  "main": "public/app.js",
+  "scripts": {
+    "dev": "node server.js",
+    "serve": "node server.js",
+    "start": "node server.js",
+    "build": "node -e \"const fs=require('fs'); fs.cpSync('public', 'dist', {recursive:true}); fs.cpSync('public', 'app/src/main/assets/public', {recursive:true}); console.log('Build complete');\"",
+    "cap:sync": "npx cap sync android",
+    "cap:android": "npx cap open android"
+  },
+  "keywords": [
+    "aviation",
+    "flight-radar",
+    "cochin-airport",
+    "pwa",
+    "capacitor",
+    "android"
+  ],
+  "author": "AIX Security & Ops",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

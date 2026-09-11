@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="AIX SEC OPS – COK Live Flight Arrivals, Departures and Turnaround Board for Cochin International Airport">
+  <meta name="theme-color" content="#070b14">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AIX SEC OPS">
+
+  <title>AIX SEC OPS – COK</title>
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app-container">
+
+    <!-- Top App Bar -->
+    <header class="top-bar">
+      <div class="brand-section">
+        <div class="brand-icon" title="Cochin International Airport (COK)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">AIX SEC OPS – COK</span>
+          <span class="brand-subtitle">COCHIN INTL (COK) • SECURITY &amp; OPS</span>
+        </div>
+      </div>
+
+      <div class="top-controls">
+        <!-- Live Connection Status Pill -->
+        <div class="status-pill" id="connection-pill" title="Connection Status">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-label">IDLE</span>
+        </div>
+
+        <!-- Proxy Configuration Button -->
+        <button class="btn-pill" id="proxy-btn" title="Configure CORS Proxy & Custom Endpoint">
+          ⚙️ Proxy: <span id="proxy-label">Auto</span>
+        </button>
+
+        <!-- Mock Mode Toggle (For Verification / Offline Testing) -->
+        <button class="btn-pill" id="mock-btn" title="Toggle Live / Mock Fixtures">
+          Mock: Off
+        </button>
+
+        <!-- Notification Toggle -->
+        <button class="btn-icon btn-notify" id="notify-btn" title="Enable Notifications for Tracked Flights">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+        </button>
+
+        <!-- Theme Toggle -->
+        <button class="btn-icon" id="theme-btn" title="Toggle Light / Dark Theme">
+          <svg id="theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Manual Refresh -->
+        <button class="btn-icon" id="refresh-btn" title="Force Refresh Schedule">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Sub Navigation & Filters -->
+    <div class="sub-bar">
+      <!-- Main Tabs -->
+      <nav class="tab-nav" aria-label="Main Navigation">
+        <button class="tab-btn active" id="tab-flights-btn" data-target="panel-flights">
+          Arrivals &amp; Departures
+        </button>
+        <button class="tab-btn" id="tab-turnaround-btn" data-target="panel-turnaround">
+          Turnaround Pairs (<span id="turnaround-count">0</span>)
+        </button>
+      </nav>
+
+      <!-- Sub Actions (Earlier Flights, Window Indicator) -->
+      <div class="sub-actions">
+        <button class="btn-pill" id="load-earlier-btn" title="Shift time window back by 6 hours">
+          ⏮ -6h Earlier
+        </button>
+        <span class="filter-chip" id="window-indicator">
+          Now ± window
+        </span>
+      </div>
+    </div>
+
+    <!-- Error Banner (Dismissible) -->
+    <div class="error-banner" id="error-banner">
+      <div class="error-content">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span id="error-message">Network fetch failure</span>
+      </div>
+      <div class="error-actions">
+        <button class="btn-pill active" id="banner-config-proxy-btn">⚙️ Configure Proxy</button>
+        <button class="btn-pill" id="banner-use-mock-btn">Schedule Mode</button>
+        <button class="btn-pill" id="banner-retry-btn">Retry</button>
+        <button class="btn-icon" id="banner-dismiss-btn" title="Dismiss">&times;</button>
+      </div>
+    </div>
+
+    <!-- PWA Install Prompt Banner -->
+    <div class="install-banner" id="install-banner">
+      <span>Install <strong>AIX SEC OPS</strong> on your device for instant launch &amp; offline use</span>
+      <div>
+        <button class="btn-pill active" id="install-app-btn">Install App</button>
+        <button class="btn-icon" id="install-close-btn" style="color:#fff">&times;</button>
+      </div>
+    </div>
+
+    <!-- Main View Content Area -->
+    <main class="view-container">
+
+      <!-- PANEL 1: ARRIVALS & DEPARTURES -->
+      <section class="view-panel active" id="panel-flights">
+        <!-- Sub-selector for Arrivals vs Departures on mobile -->
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: var(--bg-card); border-bottom: 1px solid var(--border-subtle);">
+          <div class="tab-nav">
+            <button class="tab-btn active" id="subtab-arrivals-btn">Arrivals (<span id="arrivals-count">11</span>)</button>
+            <button class="tab-btn" id="subtab-departures-btn">Departures (<span id="departures-count">10</span>)</button>
+          </div>
+          <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted);">
+            TIMES IN IST (UTC+5:30)
+          </div>
+        </div>
+
+        <!-- Arrivals Table -->
+        <div class="table-wrapper" id="arrivals-wrapper">
+          <table class="ops-table" id="arrivals-table">
+            <thead>
+              <tr>
+                <th style="width: 38px; text-align: center;" title="Track Arrival for Alerts">Track</th>
+                <th>Flight</th>
+                <th>Reg</th>
+                <th>From</th>
+                <th>ETA / Delay</th>
+                <th>STA</th>
+                <th>A/C Type</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="arrivals-tbody">
+<tr class="ops-row status-ontime" data-flight-id="arr_ix_474">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_ix_474" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 474</span></div></td>
+    <td><span class="reg-tag">VT-AXP</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="time-cell"><span>01:13</span><span class="delay-chip ontime">Landed</span></div></td>
+    <td><span class="time-sta">01:08</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">LANDED</span></td>
+  </tr>
+<tr class="ops-row status-delayed" data-flight-id="arr_fz_441">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_fz_441" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="FZ">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fz.png" alt="FZ" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FZ</span>
+  </div><span class="flight-num">FZ 441</span></div></td>
+    <td><span class="reg-tag">A6-FNA</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="time-cell"><span>02:25</span><span class="delay-chip delayed">+17m</span></div></td>
+    <td><span class="time-sta">02:08</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B38M</span></td>
+    <td><span class="status-badge delayed">DELAYED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_ey_280">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_ey_280" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="EY">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ey.png" alt="EY" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">EY</span>
+  </div><span class="flight-num">EY 280</span></div></td>
+    <td><span class="reg-tag">A6-AEC</span></td>
+    <td><div class="station-cell"><span class="station-code">AUH</span><span class="station-city">Abu Dhabi</span></div></td>
+    <td><div class="time-cell"><span>02:55</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">02:58</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A321</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-heavydelay" data-flight-id="arr_g9_426">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_g9_426" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="G9">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/g9.png" alt="G9" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">G9</span>
+  </div><span class="flight-num">G9 426</span></div></td>
+    <td><span class="reg-tag">A6-AOB</span></td>
+    <td><div class="station-cell"><span class="station-code">SHJ</span><span class="station-city">Sharjah</span></div></td>
+    <td><div class="time-cell"><span>04:33</span><span class="delay-chip heavydelay">+50m</span></div></td>
+    <td><span class="time-sta">03:43</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A320</span></td>
+    <td><span class="status-badge heavydelay">HEAVY DELAY</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_ul_165">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_ul_165" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="UL">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ul.png" alt="UL" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">UL</span>
+  </div><span class="flight-num">UL 165</span></div></td>
+    <td><span class="reg-tag">4R-ABN</span></td>
+    <td><div class="station-cell"><span class="station-code">CMB</span><span class="station-city">Colombo</span></div></td>
+    <td><div class="time-cell"><span>04:53</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">04:53</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A320</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_ak_38">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_ak_38" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="AK">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ak.png" alt="AK" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">AK</span>
+  </div><span class="flight-num">AK 38</span></div></td>
+    <td><span class="reg-tag">9M-AGF</span></td>
+    <td><div class="station-cell"><span class="station-code">KUL</span><span class="station-city">Kuala Lumpur</span></div></td>
+    <td><div class="time-cell"><span>05:43</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">05:43</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-cancelled" data-flight-id="arr_j9_407">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_j9_407" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="J9">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/j9.png" alt="J9" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">J9</span>
+  </div><span class="flight-num">J9 407</span></div></td>
+    <td><span class="reg-tag">9K-CBM</span></td>
+    <td><div class="station-cell"><span class="station-code">KWI</span><span class="station-city">Kuwait</span></div></td>
+    <td><div class="time-cell"><span>07:03</span><span class="delay-chip cancelled">Cancelled</span></div></td>
+    <td><span class="time-sta">07:03</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge cancelled">CANCELLED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_ix_412">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_ix_412" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 412</span></div></td>
+    <td><span class="reg-tag">VT-AYC</span></td>
+    <td><div class="station-cell"><span class="station-code">SHJ</span><span class="station-city">Sharjah</span></div></td>
+    <td><div class="time-cell"><span>07:23</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">07:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_wy_297">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_wy_297" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="WY">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/wy.png" alt="WY" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">WY</span>
+  </div><span class="flight-num">WY 297</span></div></td>
+    <td><span class="reg-tag">A4O-BA</span></td>
+    <td><div class="station-cell"><span class="station-code">MCT</span><span class="station-city">Muscat</span></div></td>
+    <td><div class="time-cell"><span>08:28</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">08:28</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_fd_170">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_fd_170" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="FD">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fd.png" alt="FD" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FD</span>
+  </div><span class="flight-num">FD 170</span></div></td>
+    <td><span class="reg-tag">HS-BBX</span></td>
+    <td><div class="station-cell"><span class="station-code">DMK</span><span class="station-city">Bangkok</span></div></td>
+    <td><div class="time-cell"><span>08:43</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">08:43</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="arr_ix_538">
+    <td style="text-align: center;"><input type="checkbox" class="track-checkbox" data-track-id="arr_ix_538" title="Track flight alerts"></td>
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 538</span></div></td>
+    <td><span class="reg-tag">VT-GHF</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="time-cell"><span>10:03</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">10:03</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Departures Table -->
+        <div class="table-wrapper" id="departures-wrapper" style="display: none;">
+          <table class="ops-table" id="departures-table">
+            <thead>
+              <tr>
+                <th>Flight</th>
+                <th>Reg</th>
+                <th>To</th>
+                <th>ETD / Delay</th>
+                <th>STD</th>
+                <th>A/C Type</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="departures-tbody">
+<tr class="ops-row status-ontime" data-flight-id="dep_ix_475">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 475</span></div></td>
+    <td><span class="reg-tag">VT-AXP</span></td>
+    <td><div class="station-cell"><span class="station-code">DOH</span><span class="station-city">Doha</span></div></td>
+    <td><div class="time-cell"><span>02:23</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">02:23</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_fz_442">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="FZ">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fz.png" alt="FZ" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FZ</span>
+  </div><span class="flight-num">FZ 442</span></div></td>
+    <td><span class="reg-tag">A6-FNA</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="time-cell"><span>03:28</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">03:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B38M</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_ey_281">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="EY">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ey.png" alt="EY" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">EY</span>
+  </div><span class="flight-num">EY 281</span></div></td>
+    <td><span class="reg-tag">A6-AEC</span></td>
+    <td><div class="station-cell"><span class="station-code">AUH</span><span class="station-city">Abu Dhabi</span></div></td>
+    <td><div class="time-cell"><span>04:08</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">04:08</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A321</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-heavydelay" data-flight-id="dep_g9_427">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="G9">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/g9.png" alt="G9" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">G9</span>
+  </div><span class="flight-num">G9 427</span></div></td>
+    <td><span class="reg-tag">A6-AOB</span></td>
+    <td><div class="station-cell"><span class="station-code">SHJ</span><span class="station-city">Sharjah</span></div></td>
+    <td><div class="time-cell"><span>06:01</span><span class="delay-chip heavydelay">+48m</span></div></td>
+    <td><span class="time-sta">05:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A320</span></td>
+    <td><span class="status-badge heavydelay">HEAVY DELAY</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_ul_166">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="UL">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ul.png" alt="UL" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">UL</span>
+  </div><span class="flight-num">UL 166</span></div></td>
+    <td><span class="reg-tag">4R-ABN</span></td>
+    <td><div class="station-cell"><span class="station-code">CMB</span><span class="station-city">Colombo</span></div></td>
+    <td><div class="time-cell"><span>05:58</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">05:58</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A320</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_ak_39">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="AK">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ak.png" alt="AK" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">AK</span>
+  </div><span class="flight-num">AK 39</span></div></td>
+    <td><span class="reg-tag">9M-AGF</span></td>
+    <td><div class="station-cell"><span class="station-code">KUL</span><span class="station-city">Kuala Lumpur</span></div></td>
+    <td><div class="time-cell"><span>06:48</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">06:48</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_ix_413">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 413</span></div></td>
+    <td><span class="reg-tag">VT-AYC</span></td>
+    <td><div class="station-cell"><span class="station-code">AUH</span><span class="station-city">Abu Dhabi</span></div></td>
+    <td><div class="time-cell"><span>08:28</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">08:28</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_ix_492">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 492</span></div></td>
+    <td><span class="reg-tag">VT-AYD</span></td>
+    <td><div class="station-cell"><span class="station-code">MCT</span><span class="station-city">Muscat</span></div></td>
+    <td><div class="time-cell"><span>08:43</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">08:43</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_fd_171">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="FD">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fd.png" alt="FD" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FD</span>
+  </div><span class="flight-num">FD 171</span></div></td>
+    <td><span class="reg-tag">HS-BBX</span></td>
+    <td><div class="station-cell"><span class="station-code">DMK</span><span class="station-city">Bangkok</span></div></td>
+    <td><div class="time-cell"><span>09:43</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">09:43</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime" data-flight-id="dep_ix_539">
+    <td class="flight-col"><div class="flight-cell"><div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span class="flight-num">IX 539</span></div></td>
+    <td><span class="reg-tag">VT-GHF</span></td>
+    <td><div class="station-cell"><span class="station-code">RUH</span><span class="station-city">Riyadh</span></div></td>
+    <td><div class="time-cell"><span>11:13</span><span class="delay-chip ontime">On Time</span></div></td>
+    <td><span class="time-sta">11:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PANEL 2: TURNAROUND PAIRS -->
+      <section class="view-panel" id="panel-turnaround">
+        <div class="table-wrapper" id="turnaround-wrapper">
+          <table class="ops-table" id="turnaround-table">
+            <thead>
+              <tr>
+                <th>Flight Pair (In ↳ Out)</th>
+                <th>Reg</th>
+                <th>From</th>
+                <th>To</th>
+                <th>ETA / ETD</th>
+                <th>STA / STD</th>
+                <th>Aircraft</th>
+                <th>Worst Status</th>
+              </tr>
+            </thead>
+            <tbody id="turnaround-tbody">
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span>IX 474</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span>IX 475</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">VT-AXP</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="station-cell"><span class="station-code">DOH</span><span class="station-city">Doha</span></div></td>
+    <td><div class="time-cell"><span>01:13 / 02:23</span><span class="delay-chip ontime">75m turn</span></div></td>
+    <td><span class="time-sta">01:08 / 02:23</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-delayed">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="FZ">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fz.png" alt="FZ" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FZ</span>
+  </div><span>FZ 441</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="FZ">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fz.png" alt="FZ" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FZ</span>
+  </div><span>FZ 442</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">A6-FNA</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="time-cell"><span>02:25 / 03:28</span><span class="delay-chip ontime">65m turn</span></div></td>
+    <td><span class="time-sta">02:08 / 03:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B38M</span></td>
+    <td><span class="status-badge delayed">DELAYED</span></td>
+  </tr>
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="EY">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ey.png" alt="EY" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">EY</span>
+  </div><span>EY 280</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="EY">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ey.png" alt="EY" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">EY</span>
+  </div><span>EY 281</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">A6-AEC</span></td>
+    <td><div class="station-cell"><span class="station-code">AUH</span><span class="station-city">Abu Dhabi</span></div></td>
+    <td><div class="station-cell"><span class="station-code">AUH</span><span class="station-city">Abu Dhabi</span></div></td>
+    <td><div class="time-cell"><span>02:55 / 04:08</span><span class="delay-chip ontime">70m turn</span></div></td>
+    <td><span class="time-sta">02:58 / 04:08</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A321</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-heavydelay">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="G9">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/g9.png" alt="G9" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">G9</span>
+  </div><span>G9 426</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="G9">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/g9.png" alt="G9" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">G9</span>
+  </div><span>G9 427</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">A6-AOB</span></td>
+    <td><div class="station-cell"><span class="station-code">SHJ</span><span class="station-city">Sharjah</span></div></td>
+    <td><div class="station-cell"><span class="station-code">SHJ</span><span class="station-city">Sharjah</span></div></td>
+    <td><div class="time-cell"><span>04:33 / 06:01</span><span class="delay-chip ontime">90m turn</span></div></td>
+    <td><span class="time-sta">03:43 / 05:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A320</span></td>
+    <td><span class="status-badge heavydelay">HEAVY DELAY</span></td>
+  </tr>
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="UL">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ul.png" alt="UL" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">UL</span>
+  </div><span>UL 165</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="UL">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ul.png" alt="UL" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">UL</span>
+  </div><span>UL 166</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">4R-ABN</span></td>
+    <td><div class="station-cell"><span class="station-code">CMB</span><span class="station-city">Colombo</span></div></td>
+    <td><div class="station-cell"><span class="station-code">CMB</span><span class="station-city">Colombo</span></div></td>
+    <td><div class="time-cell"><span>04:53 / 05:58</span><span class="delay-chip ontime">65m turn</span></div></td>
+    <td><span class="time-sta">04:53 / 05:58</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A320</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="AK">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ak.png" alt="AK" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">AK</span>
+  </div><span>AK 38</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="AK">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ak.png" alt="AK" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">AK</span>
+  </div><span>AK 39</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">9M-AGF</span></td>
+    <td><div class="station-cell"><span class="station-code">KUL</span><span class="station-city">Kuala Lumpur</span></div></td>
+    <td><div class="station-cell"><span class="station-code">KUL</span><span class="station-city">Kuala Lumpur</span></div></td>
+    <td><div class="time-cell"><span>05:43 / 06:48</span><span class="delay-chip ontime">65m turn</span></div></td>
+    <td><span class="time-sta">05:43 / 06:48</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span>IX 412</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span>IX 413</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">VT-AYC</span></td>
+    <td><div class="station-cell"><span class="station-code">SHJ</span><span class="station-city">Sharjah</span></div></td>
+    <td><div class="station-cell"><span class="station-code">AUH</span><span class="station-city">Abu Dhabi</span></div></td>
+    <td><div class="time-cell"><span>07:23 / 08:28</span><span class="delay-chip ontime">75m turn</span></div></td>
+    <td><span class="time-sta">07:13 / 08:28</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="FD">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fd.png" alt="FD" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FD</span>
+  </div><span>FD 170</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="FD">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/fd.png" alt="FD" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">FD</span>
+  </div><span>FD 171</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">HS-BBX</span></td>
+    <td><div class="station-cell"><span class="station-code">DMK</span><span class="station-city">Bangkok</span></div></td>
+    <td><div class="station-cell"><span class="station-code">DMK</span><span class="station-city">Bangkok</span></div></td>
+    <td><div class="time-cell"><span>08:43 / 09:43</span><span class="delay-chip ontime">60m turn</span></div></td>
+    <td><span class="time-sta">08:43 / 09:43</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">A20N</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+<tr class="ops-row status-ontime">
+    <td>
+      <div class="pair-box">
+        <div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span>IX 538</span>
+        <span class="pair-arrow">↳</span>
+        <div class="airline-logo-box" title="IX">
+    <img class="airline-logo-img" src="https://images.flightradar24.com/assets/airlines/logotypes/ix.png" alt="IX" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';" />
+    <span class="airline-fallback-badge">IX</span>
+  </div><span>IX 539</span>
+      </div>
+    </td>
+    <td><span class="reg-tag">VT-GHF</span></td>
+    <td><div class="station-cell"><span class="station-code">DXB</span><span class="station-city">Dubai</span></div></td>
+    <td><div class="station-cell"><span class="station-code">RUH</span><span class="station-city">Riyadh</span></div></td>
+    <td><div class="time-cell"><span>10:03 / 11:13</span><span class="delay-chip ontime">70m turn</span></div></td>
+    <td><span class="time-sta">10:03 / 11:13</span></td>
+    <td><span style="font-family:var(--font-mono); font-size:12px;">B738</span></td>
+    <td><span class="status-badge ontime">SCHEDULED</span></td>
+  </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer class="turnaround-footer">
+          <strong>Tracking allow-list:</strong> IX (Air India Express), AK/FD (AirAsia), UL (SriLankan), J9 (Jazeera), FZ (flydubai), WY (Oman Air), G9/3L (Air Arabia), EY (Etihad).<br>
+          Linked turnarounds match same aircraft registration arriving and departing COK within 0–150 minutes of each other.
+        </footer>
+      </section>
+
+    </main>
+
+    <!-- Floating Tracking Dock Pill (When Closed) -->
+    <div class="tracking-dock-pill" id="tracking-dock-pill" title="View Tracked Flights">
+      <span>⚡ Tracked (<span id="tracked-badge-count">0</span>)</span>
+    </div>
+
+    <!-- Floating Tracked Flights Drawer (Expandable) -->
+    <aside class="tracking-drawer" id="tracking-drawer" aria-label="Tracked Flights Panel">
+      <div class="tracking-drawer-header" id="tracking-drawer-header">
+        <div class="tracking-drawer-title">
+          <span>⚡ ACTIVE FLIGHT TRACKER</span>
+          <span class="filter-chip" id="tracking-count-chip">0 flights</span>
+        </div>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button class="btn-pill" id="clear-tracked-btn" style="font-size: 10px;">Clear All</button>
+          <button class="btn-icon" id="close-drawer-btn">&times;</button>
+        </div>
+      </div>
+      <div class="tracking-drawer-body" id="tracking-drawer-body">
+        <!-- Rendered dynamically -->
+      </div>
+    </aside>
+
+    <!-- Proxy & CORS Configuration Modal -->
+    <div class="modal-backdrop" id="proxy-modal" aria-hidden="true" style="display: none;">
+      <div class="modal-card" role="dialog" aria-labelledby="proxy-modal-title">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <h3 id="proxy-modal-title">⚙️ CORS Proxy Settings</h3>
+            <p class="modal-subtitle">Configure the network proxy for live FlightRadar24 Cochin feed</p>
+          </div>
+          <button class="btn-icon" id="close-proxy-modal-btn" title="Close modal">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="proxy-info-box">
+            <span class="info-badge">Why is a proxy needed?</span>
+            <p>FlightRadar24 blocks client-side browser requests via CORS and Cloudflare bot challenges. Routing requests through a CORS proxy or native Android bridge enables live telemetry.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="proxy-mode-select"><strong>Proxy Mode</strong></label>
+            <select id="proxy-mode-select" class="form-select">
+              <option value="auto">Auto (Android Native Bridge &gt; Fallback Proxies)</option>
+              <option value="custom">Custom Proxy URL (Recommended for reliable live feed)</option>
+              <option value="allorigins">AllOrigins (Public Free Proxy)</option>
+              <option value="codetabs">CodeTabs (Public Free Proxy)</option>
+              <option value="corsproxy">CorsProxy.io (Requires API key if prompted)</option>
+              <option value="native">Native Android Bridge (Zero-CORS on device)</option>
+              <option value="off">Direct / Off (No Proxy)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="custom-proxy-group">
+            <label class="form-label" for="custom-proxy-url"><strong>Custom Proxy URL Template</strong></label>
+            <input type="text" id="custom-proxy-url" class="form-input" placeholder="https://your-worker.workers.dev/?url=" spellcheck="false" autocomplete="off" />
+            <span class="form-help">Enter URL ending with query param or path where target URL will be appended.</span>
+            
+            <div class="proxy-presets">
+              <span class="preset-label">Quick Presets:</span>
+              <button type="button" class="btn-chip" id="preset-allorigins">AllOrigins</button>
+              <button type="button" class="btn-chip" id="preset-codetabs">CodeTabs</button>
+              <button type="button" class="btn-chip" id="preset-corsproxy">CorsProxy.io</button>
+              <button type="button" class="btn-chip" id="preset-corsanywhere">CORS Anywhere</button>
+            </div>
+          </div>
+
+          <!-- Proxy Live Test Section -->
+          <div class="proxy-test-box">
+            <div class="proxy-test-header">
+              <button type="button" class="btn-pill active" id="test-proxy-btn">
+                🔍 Test Proxy Connection
+              </button>
+              <span id="proxy-test-status" class="test-status-idle">Not tested</span>
+            </div>
+            <div id="proxy-test-details" class="test-details" style="display: none;"></div>
+          </div>
+
+          <!-- Cloudflare Worker 1-Click Guide (Collapsible) -->
+          <details class="proxy-guide-accordion">
+            <summary>⚡ Want a free, private proxy that never gets blocked? (1-Min Cloudflare Worker)</summary>
+            <div class="accordion-content">
+              <p>1. Go to <strong>workers.cloudflare.com</strong> (Free: 100,000 req/day).</p>
+              <p>2. Create a Worker and paste this code:</p>
+              <pre class="code-snippet">export default {
+  async fetch(req) {
+    const url = new URL(req.url).searchParams.get("url");
+    if (!url) return new Response("Missing url", { status: 400 });
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" } });
+    const cors = new Headers(res.headers);
+    cors.set("Access-Control-Allow-Origin", "*");
+    return new Response(res.body, { status: res.status, headers: cors });
+  }
+};</pre>
+              <p>3. Deploy and paste your worker URL above: <code>https://&lt;worker&gt;.workers.dev/?url=</code></p>
+            </div>
+          </details>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-pill" id="cancel-proxy-btn">Cancel</button>
+          <button class="btn-pill active" id="save-proxy-btn">💾 Save &amp; Apply Proxy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast / Snackbar Notifications -->
+    <div id="toast-container" aria-live="polite"></div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="mock-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

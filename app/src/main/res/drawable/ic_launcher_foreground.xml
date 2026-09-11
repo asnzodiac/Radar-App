@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Sweeping radar sector (cyan/amber glow) -->
+    <path
+        android:pathData="M54,54 L76,32 A32,32 0 0,0 54,22 Z"
+        android:fillColor="#38BDF8"
+        android:fillAlpha="0.25" />
+
+    <!-- Jet Airplane Silhouette (Facing Upward, centered in 66dp safe area) -->
+    <path
+        android:pathData="M54,28
+            C52.5,28 51.5,30 51.5,32
+            L51.5,45
+            L32,56
+            L32,60
+            L51.5,54.5
+            L51.5,69
+            L45,74
+            L45,77
+            L54,75
+            L63,77
+            L63,74
+            L56.5,69
+            L56.5,54.5
+            L76,60
+            L76,56
+            L56.5,45
+            L56.5,32
+            C56.5,30 55.5,28 54,28 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Beacon indicator dot (ops amber) -->
+    <path
+        android:pathData="M54,36 A2.5,2.5 0 1,0 54,41 A2.5,2.5 0 1,0 54,36"
+        android:fillColor="#F59E0B" />
+
+    <!-- Wingtip navigation light dots -->
+    <path
+        android:pathData="M32.5,57.5 A1.5,1.5 0 1,0 32.5,60.5 A1.5,1.5 0 1,0 32.5,57.5"
+        android:fillColor="#EF4444" />
+    <path
+        android:pathData="M75.5,57.5 A1.5,1.5 0 1,0 75.5,60.5 A1.5,1.5 0 1,0 75.5,57.5"
+        android:fillColor="#10B981" />
+</vector>

@@ -1,0 +1,6 @@
+{
+  "name": "AIX SEC OPS – COK",
+  "description": "Live flight arrivals, departures, and turnaround operations board for Cochin International Airport (COK).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

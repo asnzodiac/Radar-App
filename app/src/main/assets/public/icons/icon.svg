@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B132B"/>
+      <stop offset="50%" stop-color="#101D3D"/>
+      <stop offset="100%" stop-color="#1C2541"/>
+    </linearGradient>
+    <linearGradient id="planeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="96" fill="url(#bgGrad)"/>
+  
+  <!-- Radar circles -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#1E3A8A" stroke-width="4"/>
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#2563EB" stroke-width="3" stroke-opacity="0.5"/>
+  <circle cx="256" cy="256" r="40" fill="none" stroke="#38BDF8" stroke-width="2" stroke-opacity="0.4"/>
+  
+  <!-- Crosshairs -->
+  <line x1="256" y1="60" x2="256" y2="452" stroke="#3B82F6" stroke-width="2" stroke-opacity="0.3"/>
+  <line x1="60" y1="256" x2="452" y2="256" stroke="#3B82F6" stroke-width="2" stroke-opacity="0.3"/>
+
+  <!-- Radar sweep sector -->
+  <path d="M256,256 L380,132 A180,180 0 0,0 256,76 Z" fill="#38BDF8" fill-opacity="0.2"/>
+
+  <!-- Aircraft silhouette -->
+  <g transform="translate(256, 256) scale(1.6) translate(-54, -54)">
+    <path d="M54,26 C52.5,26 51.5,28 51.5,30 L51.5,43 L32,54 L32,58 L51.5,52.5 L51.5,67 L45,72 L45,75 L54,73 L63,75 L63,72 L56.5,67 L56.5,52.5 L76,58 L76,54 L56.5,43 L56.5,30 C56.5,28 55.5,26 54,26 Z" fill="url(#planeGrad)"/>
+    <circle cx="54" cy="34" r="3" fill="#F59E0B"/>
+    <circle cx="32" cy="56" r="2" fill="#EF4444"/>
+    <circle cx="76" cy="56" r="2" fill="#10B981"/>
+  </g>
+</svg>

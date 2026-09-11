@@ -1,0 +1,12 @@
+{
+  "appId": "com.aistudio.aixsecops.cokin",
+  "appName": "AIX SEC OPS – COK",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
