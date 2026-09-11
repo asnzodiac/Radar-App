@@ -131,6 +131,8 @@ class MainActivity : ComponentActivity() {
     settings.cacheMode = WebSettings.LOAD_DEFAULT
 
     view.setBackgroundColor(android.graphics.Color.parseColor("#070B14"))
+    // Prevent Mesa / GPU rendernode crashes in emulator and containerized environments
+    view.setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
 
     view.webChromeClient = object : WebChromeClient() {
       override fun onPermissionRequest(request: PermissionRequest?) {
@@ -164,6 +166,21 @@ class MainActivity : ComponentActivity() {
         } else {
           android.util.Log.w("WebViewSubresource", "Subresource request notice ${request?.url}: ${error?.description}")
         }
+      }
+
+      override fun onRenderProcessGone(
+        view: WebView?,
+        detail: android.webkit.RenderProcessGoneDetail?
+      ): Boolean {
+        android.util.Log.w(
+          "WebViewRenderer",
+          "Render process gone (didCrash=${detail?.didCrash()}). Recovering safely."
+        )
+        view?.let {
+          (it.parent as? android.view.ViewGroup)?.removeView(it)
+          it.destroy()
+        }
+        return true // Prevent app crash on renderer termination
       }
     }
 

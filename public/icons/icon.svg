@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0B132B"/>
@@ -11,25 +11,23 @@
     </linearGradient>
   </defs>
   <!-- Background with rounded corners -->
-  <rect width="512" height="512" rx="96" fill="url(#bgGrad)"/>
+  <rect width="108" height="108" rx="22" fill="url(#bgGrad)"/>
   
-  <!-- Radar circles -->
-  <circle cx="256" cy="256" r="180" fill="none" stroke="#1E3A8A" stroke-width="4"/>
-  <circle cx="256" cy="256" r="110" fill="none" stroke="#2563EB" stroke-width="3" stroke-opacity="0.5"/>
-  <circle cx="256" cy="256" r="40" fill="none" stroke="#38BDF8" stroke-width="2" stroke-opacity="0.4"/>
+  <!-- Radar range rings -->
+  <circle cx="54" cy="54" r="34" fill="none" stroke="#1E3A8A" stroke-width="1.2"/>
+  <circle cx="54" cy="54" r="20" fill="none" stroke="#2563EB" stroke-width="1" stroke-opacity="0.5"/>
+  <circle cx="54" cy="54" r="8" fill="none" stroke="#38BDF8" stroke-width="0.8" stroke-opacity="0.4"/>
   
   <!-- Crosshairs -->
-  <line x1="256" y1="60" x2="256" y2="452" stroke="#3B82F6" stroke-width="2" stroke-opacity="0.3"/>
-  <line x1="60" y1="256" x2="452" y2="256" stroke="#3B82F6" stroke-width="2" stroke-opacity="0.3"/>
+  <line x1="54" y1="16" x2="54" y2="92" stroke="#3B82F6" stroke-width="0.8" stroke-opacity="0.3"/>
+  <line x1="16" y1="54" x2="92" y2="54" stroke="#3B82F6" stroke-width="0.8" stroke-opacity="0.3"/>
 
   <!-- Radar sweep sector -->
-  <path d="M256,256 L380,132 A180,180 0 0,0 256,76 Z" fill="#38BDF8" fill-opacity="0.2"/>
+  <path d="M54,54 L76,32 A32,32 0 0,0 54,22 Z" fill="#38BDF8" fill-opacity="0.25"/>
 
-  <!-- Aircraft silhouette -->
-  <g transform="translate(256, 256) scale(1.6) translate(-54, -54)">
-    <path d="M54,26 C52.5,26 51.5,28 51.5,30 L51.5,43 L32,54 L32,58 L51.5,52.5 L51.5,67 L45,72 L45,75 L54,73 L63,75 L63,72 L56.5,67 L56.5,52.5 L76,58 L76,54 L56.5,43 L56.5,30 C56.5,28 55.5,26 54,26 Z" fill="url(#planeGrad)"/>
-    <circle cx="54" cy="34" r="3" fill="#F59E0B"/>
-    <circle cx="32" cy="56" r="2" fill="#EF4444"/>
-    <circle cx="76" cy="56" r="2" fill="#10B981"/>
-  </g>
+  <!-- Aircraft silhouette (108x108 centered coordinates matching Android adaptive launcher) -->
+  <path d="M54,28 C52.5,28 51.5,30 51.5,32 L51.5,45 L32,56 L32,60 L51.5,54.5 L51.5,69 L45,74 L45,77 L54,75 L63,77 L63,74 L56.5,69 L56.5,54.5 L76,60 L76,56 L56.5,45 L56.5,32 C56.5,30 55.5,28 54,28 Z" fill="url(#planeGrad)"/>
+  <circle cx="54" cy="38.5" r="2.5" fill="#F59E0B"/>
+  <circle cx="32.5" cy="59" r="1.5" fill="#EF4444"/>
+  <circle cx="75.5" cy="59" r="1.5" fill="#10B981"/>
 </svg>
